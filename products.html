@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="KHALÉ - تسوقي جميع منتجات تصفيف الشعر الفاخرة">
+  <title>المنتجات | KHALÉ</title>
+  <link rel="stylesheet" href="css/style.css">
+  <style>
+    .no-results { text-align:center; padding:4rem 2rem; grid-column:1/-1; }
+    .no-results h3 { font-size:1.2rem; margin-bottom:.5rem; }
+    .no-results p  { font-size:.875rem; color:var(--text-3); }
+  </style>
+</head>
+<body>
+
+  <div id="headerMount"></div>
+
+  <div class="page-hero">
+    <div class="page-hero-inner">
+      <div class="breadcrumb">
+        <a href="index.html">الرئيسية</a>
+        <span class="bc-sep">›</span>
+        <span>المنتجات</span>
+      </div>
+      <h1 class="page-hero-title">مجموعة KHALÉ الكاملة</h1>
+      <p class="page-hero-desc">أدوات تصفيف شعر فاخرة لتصفيفة احترافية في كل وقت</p>
+    </div>
+  </div>
+
+  <section class="section">
+    <div class="container">
+
+      <div class="products-toolbar">
+        <div class="filter-pills">
+          <button class="filter-pill active" data-category="all">الكل</button>
+          <button class="filter-pill" data-category="sets">الطقم الكامل</button>
+          <button class="filter-pill" data-category="brushes">الفرش</button>
+          <button class="filter-pill" data-category="curlers">الكيرلرات</button>
+          <button class="filter-pill" data-category="accessories">الملحقات</button>
+        </div>
+        <div style="display:flex;align-items:center;gap:1rem">
+          <span class="prod-count" id="productsCount">6 منتجات</span>
+          <select class="sort-select" id="sortSelect">
+            <option value="default">الترتيب الافتراضي</option>
+            <option value="price-low">السعر: من الأقل للأعلى</option>
+            <option value="price-high">السعر: من الأعلى للأقل</option>
+            <option value="rating">الأعلى تقييماً</option>
+          </select>
+        </div>
+      </div>
+
+      <div style="margin-bottom:1.5rem">
+        <div class="hdr-search-wrap" style="max-width:380px;width:100%">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z"/></svg>
+          <input type="text" id="productSearch" placeholder="ابحثي عن منتج..." autocomplete="off">
+        </div>
+      </div>
+
+      <div class="products-grid" id="productsGrid"></div>
+    </div>
+  </section>
+
+  <!-- Promo Banner -->
+  <section style="padding:0 0 var(--py)">
+    <div class="container">
+      <div style="background:var(--dark);border-radius:16px;padding:2.5rem;display:grid;grid-template-columns:1fr auto;align-items:center;gap:2rem;position:relative;overflow:hidden">
+        <div style="position:absolute;inset:0;background:radial-gradient(ellipse at 80% 50%,rgba(191,142,54,.12) 0%,transparent 60%);pointer-events:none"></div>
+        <div style="position:relative;z-index:1">
+          <p style="font-size:.72rem;letter-spacing:.2em;text-transform:uppercase;color:var(--gold-lt);margin-bottom:.5rem">عرض محدود</p>
+          <h3 style="font-family:var(--font-display);font-size:1.6rem;color:#fff;margin-bottom:.5rem">الطقم الكامل بسعر استثنائي</h3>
+          <p style="color:rgba(255,255,255,.5);font-size:.875rem">وفري <span style="color:var(--gold-lt);font-weight:700">55,000 د.ع</span> عند شراء الطقم الكامل</p>
+        </div>
+        <a href="product-details.html?id=1" class="btn btn-gold btn-lg" style="white-space:nowrap;position:relative;z-index:1">اطلبيه الآن</a>
+      </div>
+    </div>
+  </section>
+
+  <div id="footerMount"></div>
+
+  <script src="js/data.js"></script>
+  <script src="js/app.js"></script>
+  <script>
+    document.getElementById('headerMount').innerHTML = renderHeader('products');
+    document.getElementById('footerMount').innerHTML = renderFooter();
+
+    let currentProducts = [...PRODUCTS];
+
+    function renderGrid(products) {
+      const grid  = document.getElementById('productsGrid');
+      const count = document.getElementById('productsCount');
+      if (!products.length) {
+        grid.innerHTML = `<div class="no-results"><h3>لا توجد منتجات</h3><p>جربي تصفية مختلفة</p></div>`;
+      } else {
+        grid.innerHTML = products.map(renderProductCard).join('');
+      }
+      if (count) count.textContent = `${products.length} منتج`;
+    }
+
+    renderGrid(PRODUCTS);
+
+    /* Search */
+    document.getElementById('productSearch').addEventListener('input', function() {
+      const q = this.value.trim();
+      currentProducts = q
+        ? PRODUCTS.filter(p => p.name.includes(q) || p.shortDesc.includes(q))
+        : [...PRODUCTS];
+      renderGrid(currentProducts);
+    });
+
+    /* Sort */
+    document.getElementById('sortSelect').addEventListener('change', function() {
+      let sorted = [...currentProducts];
+      if (this.value === 'price-low')  sorted.sort((a,b) => a.price - b.price);
+      if (this.value === 'price-high') sorted.sort((a,b) => b.price - a.price);
+      if (this.value === 'rating')     sorted.sort((a,b) => b.rating - a.rating);
+      renderGrid(sorted);
+    });
+
+    /* Filter pills */
+    document.querySelectorAll('.filter-pill').forEach(pill => {
+      pill.addEventListener('click', () => {
+        document.querySelectorAll('.filter-pill').forEach(p => p.classList.remove('active'));
+        pill.classList.add('active');
+        currentProducts = filterProducts(pill.dataset.category);
+        renderGrid(currentProducts);
+        document.getElementById('sortSelect').value = 'default';
+      });
+    });
+
+    /* URL query param */
+    const urlQ = new URLSearchParams(window.location.search).get('q');
+    if (urlQ) {
+      const inp = document.getElementById('productSearch');
+      inp.value = urlQ;
+      inp.dispatchEvent(new Event('input'));
+    }
+  </script>
+</body>
+</html>

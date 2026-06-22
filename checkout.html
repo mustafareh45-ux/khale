@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>إتمام الشراء | KHALÉ</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <div id="headerMount"></div>
+
+  <div class="page-hero" style="padding:3.5rem 0 2.5rem">
+    <div class="page-hero-inner">
+      <div class="breadcrumb">
+        <a href="index.html">الرئيسية</a>
+        <span class="bc-sep">›</span>
+        <a href="cart.html">السلة</a>
+        <span class="bc-sep">›</span>
+        <span>إتمام الشراء</span>
+      </div>
+      <h1 class="page-hero-title">إتمام الشراء</h1>
+    </div>
+  </div>
+
+  <!-- Steps -->
+  <div class="container" style="padding-top:2rem">
+    <div class="checkout-steps">
+      <div class="step done">
+        <div class="step-dot" id="step1Dot">1</div>
+        <div class="step-lbl">السلة</div>
+      </div>
+      <div class="step-line done"></div>
+      <div class="step active">
+        <div class="step-dot">2</div>
+        <div class="step-lbl">بيانات التوصيل</div>
+      </div>
+      <div class="step-line"></div>
+      <div class="step">
+        <div class="step-dot">3</div>
+        <div class="step-lbl">الدفع</div>
+      </div>
+      <div class="step-line"></div>
+      <div class="step">
+        <div class="step-dot">4</div>
+        <div class="step-lbl">تأكيد الطلب</div>
+      </div>
+    </div>
+  </div>
+
+  <section class="section" style="padding-top:1.5rem" id="checkoutSection">
+    <div class="container" id="checkoutContainer"></div>
+  </section>
+
+  <!-- Success -->
+  <section class="section hidden" id="successSection">
+    <div class="container">
+      <div class="order-done">
+        <div class="order-done-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+        </div>
+        <h2>تم تأكيد طلبكِ!</h2>
+        <p>شكراً لكِ! تم استلام طلبكِ بنجاح. سيتواصل معكِ فريقنا خلال 24 ساعة لتأكيد موعد التوصيل.</p>
+        <div class="order-num" id="orderNumber"></div>
+        <a href="products.html" class="btn btn-gold btn-lg">متابعة التسوق</a>
+      </div>
+    </div>
+  </section>
+
+  <div id="footerMount"></div>
+
+  <script src="js/data.js"></script>
+  <script src="js/app.js"></script>
+  <script>
+    document.getElementById('headerMount').innerHTML = renderHeader('');
+    document.getElementById('footerMount').innerHTML = renderFooter();
+
+    /* Step 1 done icon */
+    document.getElementById('step1Dot').innerHTML =
+      '<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" width="14" height="14"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>';
+
+    const SHIPPING_THRESHOLD = 80000;
+    const SHIPPING_COST      = 5000;
+
+    function getCouponData() {
+      try { return JSON.parse(sessionStorage.getItem('khale_coupon')); }
+      catch { return null; }
+    }
+
+    function renderCheckout() {
+      const items  = Cart.get();
+      const coupon = getCouponData();
+
+      if (!items.length) {
+        document.getElementById('checkoutContainer').innerHTML =
+          `<div style="text-align:center;padding:4rem 2rem">
+            <p style="margin-bottom:1rem;color:var(--text-3)">سلتك فارغة. أضيفي منتجات أولاً.</p>
+            <a href="products.html" class="btn btn-gold">تسوقي الآن</a>
+           </div>`;
+        return;
+      }
+
+      const subtotal    = Cart.total();
+      const shippingFree = subtotal >= SHIPPING_THRESHOLD;
+      const shipping    = shippingFree ? 0 : SHIPPING_COST;
+      const discountAmt = coupon ? Math.round(subtotal * coupon.discount / 100) : 0;
+      const total       = subtotal - discountAmt + shipping;
+
+      const orderItemsHtml = items.map(item => {
+        const p = getProduct(item.id);
+        if (!p) return '';
+        return `
+          <div style="display:flex;align-items:center;gap:.75rem;padding:.75rem 0;border-bottom:1px solid var(--bdr-lt)">
+            <div style="width:48px;height:48px;background:var(--cream);border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;color:var(--gold-dk)">
+              <div style="width:28px;height:28px">${ICONS[p.icon]||''}</div>
+            </div>
+            <div style="flex:1">
+              <div style="font-size:.85rem;font-weight:600;color:var(--dark)">${p.name}</div>
+              <div style="font-size:.75rem;color:var(--text-3)">الكمية: ${item.qty}</div>
+            </div>
+            <span style="font-size:.88rem;font-weight:700;color:var(--dark)">${formatPrice(p.price * item.qty)}</span>
+          </div>`;
+      }).join('');
+
+      const couponRow = coupon
+        ? `<div class="osb-row disc"><span>خصم (${coupon.code})</span><span>- ${formatPrice(discountAmt)}</span></div>` : '';
+
+      document.getElementById('checkoutContainer').innerHTML = `
+        <div class="checkout-layout">
+          <div>
+            <!-- Shipping info -->
+            <div class="co-section">
+              <h3 class="co-section-head">
+                <span class="co-num">1</span>
+                بيانات التوصيل
+              </h3>
+              <form id="checkoutForm">
+                <div class="form-grid">
+                  <div class="fg">
+                    <label>الاسم الأول *</label>
+                    <input type="text" placeholder="مريم" required id="firstName">
+                  </div>
+                  <div class="fg">
+                    <label>الاسم الأخير *</label>
+                    <input type="text" placeholder="العبدالله" required id="lastName">
+                  </div>
+                  <div class="fg">
+                    <label>رقم الهاتف *</label>
+                    <input type="tel" placeholder="07X XXXX XXXX" required id="phone" dir="ltr">
+                  </div>
+                  <div class="fg">
+                    <label>المحافظة *</label>
+                    <select required id="governorate">
+                      <option value="">اختاري المحافظة</option>
+                      <option>بغداد</option><option>البصرة</option><option>نينوى</option>
+                      <option>أربيل</option><option>النجف</option><option>كربلاء</option>
+                      <option>الأنبار</option><option>ديالى</option><option>كركوك</option>
+                      <option>ميسان</option><option>ذي قار</option><option>واسط</option>
+                      <option>المثنى</option><option>القادسية</option><option>صلاح الدين</option>
+                      <option>دهوك</option><option>السليمانية</option><option>بابل</option>
+                    </select>
+                  </div>
+                  <div class="fg full">
+                    <label>العنوان التفصيلي *</label>
+                    <input type="text" placeholder="الحي، الشارع، رقم المنزل" required id="address">
+                  </div>
+                  <div class="fg full">
+                    <label>ملاحظات إضافية (اختياري)</label>
+                    <textarea placeholder="أي تعليمات خاصة للتوصيل..." id="notes"></textarea>
+                  </div>
+                </div>
+              </form>
+            </div>
+
+            <!-- Payment -->
+            <div class="co-section">
+              <h3 class="co-section-head">
+                <span class="co-num">2</span>
+                طريقة الدفع
+              </h3>
+              <div class="payment-opts">
+                <label class="pay-opt selected" id="codOption">
+                  <input type="radio" name="payment" value="cod" checked>
+                  <div class="pay-icon cod">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+                  </div>
+                  <div>
+                    <div class="pay-name">الدفع عند الاستلام (كاش)</div>
+                    <div class="pay-desc">ادفعي نقداً عند وصول الطلب</div>
+                  </div>
+                </label>
+                <label class="pay-opt" id="zaincashOption">
+                  <input type="radio" name="payment" value="zaincash">
+                  <div class="pay-icon zaincash">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
+                  </div>
+                  <div>
+                    <div class="pay-name">ZainCash</div>
+                    <div class="pay-desc">ادفعي عبر تطبيق ZainCash بسهولة</div>
+                  </div>
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <!-- Order Summary -->
+          <div>
+            <div class="order-summary-box" style="position:sticky;top:90px">
+              <h3 class="osb-title">ملخص الطلب</h3>
+              <div>${orderItemsHtml}</div>
+              <div class="osb-rows" style="margin-top:1rem">
+                <div class="osb-row"><span>المجموع الفرعي</span><span>${formatPrice(subtotal)}</span></div>
+                ${couponRow}
+                <div class="osb-row"><span>الشحن</span><span>${shippingFree ? 'مجاني' : formatPrice(SHIPPING_COST)}</span></div>
+                <div class="osb-row total"><span>الإجمالي</span><span>${formatPrice(total)}</span></div>
+              </div>
+              <button class="btn btn-gold btn-lg btn-block" style="margin-top:1.25rem" id="placeOrderBtn">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" width="16" height="16"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                تأكيد الطلب
+              </button>
+              <p style="text-align:center;font-size:.72rem;color:var(--text-3);margin-top:.75rem">
+                بالضغط على تأكيد الطلب توافقين على سياسة الخصوصية وشروط الاستخدام
+              </p>
+            </div>
+          </div>
+        </div>`;
+
+      initPaymentOptions();
+      document.getElementById('placeOrderBtn').addEventListener('click', placeOrder);
+    }
+
+    function placeOrder() {
+      const required = ['firstName','lastName','phone','governorate','address'];
+      for (const fId of required) {
+        const el = document.getElementById(fId);
+        if (!el || !el.value.trim()) {
+          el && el.focus();
+          el && (el.style.borderColor = 'var(--error)');
+          Toast.show('يرجى ملء جميع الحقول المطلوبة', 'error');
+          setTimeout(() => { if(el) el.style.borderColor = ''; }, 2000);
+          return;
+        }
+      }
+
+      document.getElementById('checkoutSection').classList.add('hidden');
+      document.getElementById('successSection').classList.remove('hidden');
+      document.getElementById('orderNumber').textContent =
+        `رقم الطلب: KHL-${Math.floor(Math.random() * 90000 + 10000)}`;
+      Cart.clear();
+    }
+
+    renderCheckout();
+  </script>
+</body>
+</html>

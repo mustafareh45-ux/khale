@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>سلة التسوق | KHALÉ</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <div id="headerMount"></div>
+
+  <div class="page-hero" style="padding:4rem 0 3rem">
+    <div class="page-hero-inner">
+      <div class="breadcrumb">
+        <a href="index.html">الرئيسية</a>
+        <span class="bc-sep">›</span>
+        <span>سلة التسوق</span>
+      </div>
+      <h1 class="page-hero-title">سلة التسوق</h1>
+    </div>
+  </div>
+
+  <section class="section" style="padding-top:2.5rem">
+    <div class="container">
+      <div class="cart-layout" id="cartLayout">
+        <!-- Cart content rendered by JS -->
+      </div>
+    </div>
+  </section>
+
+  <div id="footerMount"></div>
+
+  <script src="js/data.js"></script>
+  <script src="js/app.js"></script>
+  <script>
+    document.getElementById('headerMount').innerHTML = renderHeader('');
+    document.getElementById('footerMount').innerHTML = renderFooter();
+
+    const SHIPPING_THRESHOLD = 80000;
+    const SHIPPING_COST = 5000;
+
+    function getCouponData() {
+      try { return JSON.parse(sessionStorage.getItem('khale_coupon')); }
+      catch { return null; }
+    }
+
+    function updateCartDisplay() {
+      const items  = Cart.get();
+      const coupon = getCouponData();
+      const layout = document.getElementById('cartLayout');
+
+      if (!items.length) {
+        layout.innerHTML = `
+          <div class="cart-empty" style="grid-column:1/-1">
+            <div class="cart-empty-icon">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15.75 10.5V6a3.75 3.75 0 10-7.5 0v4.5m11.356-1.993l1.263 12c.07.665-.45 1.243-1.119 1.243H4.25a1.125 1.125 0 01-1.12-1.243l1.264-12A1.125 1.125 0 015.513 7.5h12.974c.576 0 1.059.435 1.119 1.007z"/></svg>
+            </div>
+            <h3>سلتك فارغة!</h3>
+            <p>لم تضيفي أي منتجات بعد. استعرضي منتجاتنا الرائعة.</p>
+            <a href="products.html" class="btn btn-gold btn-lg">تسوقي الآن</a>
+          </div>`;
+        return;
+      }
+
+      const subtotal     = Cart.total();
+      const shippingFree = subtotal >= SHIPPING_THRESHOLD;
+      const shipping     = shippingFree ? 0 : SHIPPING_COST;
+      const discountAmt  = coupon ? Math.round(subtotal * coupon.discount / 100) : 0;
+      const total        = subtotal - discountAmt + shipping;
+
+      const itemsHtml = items.map(item => {
+        const p = getProduct(item.id);
+        if (!p) return '';
+        return `
+          <div class="cart-item" data-id="${p.id}">
+            <div class="cart-item-img">${ICONS[p.icon] || ''}</div>
+            <div class="cart-item-info">
+              <div class="cart-item-name"><a href="product-details.html?id=${p.id}">${p.name}</a></div>
+              <div class="cart-item-sub">${p.shortDesc}</div>
+              <div class="cart-item-controls">
+                <div class="qty-ctrl">
+                  <button class="qty-btn" onclick="changeQty(${p.id}, ${item.qty - 1})">−</button>
+                  <span class="qty-val">${item.qty}</span>
+                  <button class="qty-btn" onclick="changeQty(${p.id}, ${item.qty + 1})">+</button>
+                </div>
+              </div>
+            </div>
+            <div class="cart-price-col">
+              <span class="cart-item-price">${formatPrice(p.price * item.qty)}</span>
+              <button class="remove-btn" onclick="removeItem(${p.id})">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" width="11" height="11"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                حذف
+              </button>
+            </div>
+          </div>`;
+      }).join('');
+
+      const shippingBar = !shippingFree
+        ? `<div style="background:var(--gold-pale);border-radius:8px;padding:.75rem 1rem;margin-bottom:1.25rem;font-size:.8rem;color:var(--text)">
+            أضيفي <strong style="color:var(--gold)">${formatPrice(SHIPPING_THRESHOLD - subtotal)}</strong> للحصول على شحن مجاني!
+           </div>`
+        : `<div style="background:#E8F5E9;border-radius:8px;padding:.75rem 1rem;margin-bottom:1.25rem;font-size:.8rem;color:#2E7D32;display:flex;align-items:center;gap:.5rem">
+            <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+            تهانيكِ! حصلتِ على شحن مجاني
+           </div>`;
+
+      const couponRow = coupon
+        ? `<div class="osb-row disc"><span>خصم (${coupon.code})</span><span>- ${formatPrice(discountAmt)}</span></div>` : '';
+
+      layout.innerHTML = `
+        <div>
+          <div class="cart-head-row">
+            <h2 class="cart-title">سلة التسوق (${Cart.count()} منتج)</h2>
+            <button class="clear-btn" onclick="clearAll()">حذف الكل</button>
+          </div>
+          <div class="cart-items">${itemsHtml}</div>
+        </div>
+
+        <div class="order-summary-box">
+          <h3 class="osb-title">ملخص الطلب</h3>
+          ${shippingBar}
+          <div class="osb-rows">
+            <div class="osb-row"><span>المجموع الفرعي</span><span>${formatPrice(subtotal)}</span></div>
+            ${couponRow}
+            <div class="osb-row"><span>الشحن</span><span>${shippingFree ? 'مجاني' : formatPrice(SHIPPING_COST)}</span></div>
+            <div class="osb-row total"><span>الإجمالي</span><span>${formatPrice(total)}</span></div>
+          </div>
+
+          <form class="coupon-row" id="couponForm">
+            <input type="text" class="coupon-inp" placeholder="كوبون الخصم" value="${coupon ? coupon.code : ''}">
+            <button type="submit" class="btn btn-ghost btn-sm">تطبيق</button>
+          </form>
+
+          <a href="checkout.html" class="btn btn-gold btn-lg btn-block" style="margin-bottom:.75rem">
+            إتمام الشراء
+          </a>
+          <a href="products.html" class="btn btn-ghost btn-block">متابعة التسوق</a>
+
+          <div style="display:flex;align-items:center;justify-content:center;gap:1.25rem;margin-top:1.25rem;padding-top:1.25rem;border-top:1px solid var(--bdr-lt)">
+            <span style="font-size:.72rem;color:var(--text-3);display:flex;align-items:center;gap:.35rem">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" width="12" height="12"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+              الدفع عند الاستلام
+            </span>
+            <span style="font-size:.72rem;color:var(--text-3);display:flex;align-items:center;gap:.35rem">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" width="12" height="12"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
+              ZainCash
+            </span>
+          </div>
+        </div>`;
+
+      initCoupon();
+    }
+
+    function changeQty(id, newQty) {
+      if (newQty < 1) { removeItem(id); return; }
+      Cart.updateQty(id, newQty);
+      updateCartDisplay();
+    }
+
+    function removeItem(id) {
+      Cart.remove(id);
+      updateCartDisplay();
+    }
+
+    function clearAll() {
+      if (confirm('هل تريدين حذف جميع المنتجات من السلة؟')) {
+        Cart.clear();
+        updateCartDisplay();
+      }
+    }
+
+    updateCartDisplay();
+    window.addEventListener('cartUpdated', updateCartDisplay);
+  </script>
+</body>
+</html>

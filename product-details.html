@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>تفاصيل المنتج | KHALÉ</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <div id="headerMount"></div>
+
+  <section class="section" style="padding-top:2.5rem">
+    <div class="container">
+      <div class="breadcrumb" style="justify-content:flex-start;margin-bottom:2rem">
+        <a href="index.html">الرئيسية</a>
+        <span class="bc-sep">›</span>
+        <a href="products.html">المنتجات</a>
+        <span class="bc-sep">›</span>
+        <span id="breadcrumbName">تفاصيل المنتج</span>
+      </div>
+
+      <div class="pd-grid" id="productDetailGrid">
+        <!-- JS rendered -->
+      </div>
+    </div>
+  </section>
+
+  <!-- Tabs section injected by JS before footerMount -->
+
+  <!-- Related Products -->
+  <section class="section" style="background:var(--cream)">
+    <div class="container">
+      <div class="text-center" data-reveal="up">
+        <span class="section-label">اقتراحات لكِ</span>
+        <h2 class="section-title">منتجات ذات صلة</h2>
+        <p class="section-subtitle">قد يعجبكِ أيضاً</p>
+      </div>
+      <div class="products-grid" id="relatedGrid"></div>
+    </div>
+  </section>
+
+  <div id="footerMount"></div>
+
+  <script src="js/data.js"></script>
+  <script src="js/app.js"></script>
+  <script>
+    document.getElementById('headerMount').innerHTML = renderHeader('products');
+    document.getElementById('footerMount').innerHTML = renderFooter();
+
+    const params  = new URLSearchParams(window.location.search);
+    const id      = parseInt(params.get('id')) || 1;
+    const product = getProduct(id);
+
+    if (!product) {
+      document.getElementById('productDetailGrid').innerHTML =
+        `<p style="text-align:center;padding:4rem;grid-column:1/-1">المنتج غير موجود. <a href="products.html" style="color:var(--gold)">تصفح المنتجات</a></p>`;
+    } else {
+      document.title = product.name + ' | KHALÉ';
+      document.getElementById('breadcrumbName').textContent = product.name;
+
+      let qty = 1;
+
+      const badgeMap = { best: 'badge-best', new: 'badge-new', sale: 'badge-sale' };
+      const badge = product.badge
+        ? `<span class="prod-badge ${badgeMap[product.badgeType] || 'badge-best'}" style="position:static;display:inline-block;margin-bottom:.75rem">${product.badge}</span>` : '';
+
+      const originalPriceHtml = product.originalPrice
+        ? `<span class="pd-price-orig">${formatPrice(product.originalPrice)}</span>
+           <span class="pd-price-save">وفري ${product.discount}%</span>` : '';
+
+      const wishlisted = Wishlist.has(id);
+
+      const featHtml = product.features
+        ? `<ul class="feat-list">${product.features.map(f => `<li>${f}</li>`).join('')}</ul>` : '';
+
+      const catLabels = { sets:'الطقم الكامل', brushes:'الفرش', curlers:'الكيرلرات', accessories:'الملحقات' };
+
+      document.getElementById('productDetailGrid').innerHTML = `
+        <div class="pd-images">
+          <div class="pd-main-img">
+            <div class="pd-main-icon">${ICONS[product.icon] || ''}</div>
+          </div>
+          <div class="pd-thumbs">
+            <div class="pd-thumb active">
+              <div style="width:32px;height:32px;color:var(--gold-dk)">${ICONS[product.icon] || ''}</div>
+            </div>
+            <div class="pd-thumb">
+              <div style="width:28px;height:28px;color:var(--gold-dk);opacity:.55">${ICONS[product.icon] || ''}</div>
+            </div>
+            <div class="pd-thumb">
+              <div style="width:24px;height:24px;color:var(--gold-dk);opacity:.35">${ICONS[product.icon] || ''}</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="pd-info">
+          ${badge}
+          <p class="pd-eyebrow">KHALÉ Premium Collection</p>
+          <h1 class="pd-title">${product.name}</h1>
+
+          <div class="pd-price-row">
+            <span class="pd-price-now">${formatPrice(product.price)}</span>
+            ${originalPriceHtml}
+          </div>
+
+          <p class="pd-desc">${product.description}</p>
+
+          <div class="pd-features">
+            <h4>المميزات الرئيسية:</h4>
+            ${featHtml}
+          </div>
+
+          <div class="stock-line">
+            <span class="stock-dot"></span>
+            متوفر في المخزون (${product.stock} قطعة متبقية)
+          </div>
+
+          <div class="pd-qty-row">
+            <span class="pd-qty-label">الكمية:</span>
+            <div class="qty-ctrl">
+              <button class="qty-btn" id="qtyMinus">−</button>
+              <input type="number" class="qty-val" id="qtyNum" value="1" min="1" max="10" readonly>
+              <button class="qty-btn" id="qtyPlus">+</button>
+            </div>
+          </div>
+
+          <div class="pd-actions">
+            <button class="btn btn-gold btn-lg" style="flex:1" id="addToCartBtn">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" width="16" height="16"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.75 10.5V6a3.75 3.75 0 10-7.5 0v4.5m11.356-1.993l1.263 12c.07.665-.45 1.243-1.119 1.243H4.25a1.125 1.125 0 01-1.12-1.243l1.264-12A1.125 1.125 0 015.513 7.5h12.974c.576 0 1.059.435 1.119 1.007z"/></svg>
+              أضيفي للسلة
+            </button>
+            <button class="btn btn-ghost" id="wishlistActionBtn">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="${wishlisted?'currentColor':'none'}" viewBox="0 0 24 24" stroke="currentColor" width="16" height="16"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/></svg>
+              ${wishlisted ? 'في المفضلة' : 'المفضلة'}
+            </button>
+          </div>
+
+          <button class="btn btn-dark btn-block" id="buyNowBtn" style="margin-bottom:1.25rem">اشتري الآن</button>
+
+          <div class="pd-trust">
+            <div class="trust-item">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h1m8-1a1 1 0 01-1 1H9m4-1V8a1 1 0 011-1h2.586a1 1 0 01.707.293l3.414 3.414a1 1 0 01.293.707V16a1 1 0 01-1 1h-1m-6-1a1 1 0 001 1h1M5 17a2 2 0 104 0m-4 0a2 2 0 114 0m6 0a2 2 0 104 0m-4 0a2 2 0 114 0"/></svg>
+              توصيل سريع
+            </div>
+            <div class="trust-item">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+              إرجاع 14 يوم
+            </div>
+            <div class="trust-item">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+              جودة مضمونة
+            </div>
+          </div>
+
+          <div class="pd-meta">
+            <div>كود المنتج: <span>${product.sku || 'KHL-00' + product.id}</span></div>
+            <div>الفئة: <span>${catLabels[product.category] || product.category}</span></div>
+          </div>
+        </div>`;
+
+      /* Quantity controls */
+      document.getElementById('qtyMinus').addEventListener('click', () => {
+        if (qty > 1) { qty--; document.getElementById('qtyNum').value = qty; }
+      });
+      document.getElementById('qtyPlus').addEventListener('click', () => {
+        if (qty < 10) { qty++; document.getElementById('qtyNum').value = qty; }
+      });
+
+      /* Add to cart */
+      document.getElementById('addToCartBtn').addEventListener('click', () => Cart.add(product.id, qty));
+
+      /* Buy now */
+      document.getElementById('buyNowBtn').addEventListener('click', () => {
+        Cart.add(product.id, qty);
+        window.location.href = 'checkout.html';
+      });
+
+      /* Wishlist */
+      document.getElementById('wishlistActionBtn').addEventListener('click', function() {
+        const w = Wishlist.toggle(product.id);
+        const svgFill = w ? 'currentColor' : 'none';
+        this.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" fill="${svgFill}" viewBox="0 0 24 24" stroke="currentColor" width="16" height="16"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/></svg> ${w ? 'في المفضلة' : 'المفضلة'}`;
+      });
+
+      /* Thumbnails */
+      document.querySelectorAll('.pd-thumb').forEach((thumb, i) => {
+        thumb.addEventListener('click', () => {
+          document.querySelectorAll('.pd-thumb').forEach(t => t.classList.remove('active'));
+          thumb.classList.add('active');
+        });
+      });
+
+      /* Features HTML for tab */
+      const featTabHtml = product.features
+        ? `<ul class="feat-list" style="max-width:520px">${product.features.map(f=>`<li>${f}</li>`).join('')}</ul>` : '';
+
+      /* Inject tabs section */
+      const tabsSection = document.createElement('section');
+      tabsSection.className = 'section';
+      tabsSection.innerHTML = `
+        <div class="container">
+          <div class="pd-tabs" id="reviewsTab">
+            <div class="tab-nav">
+              <button class="tab-btn active" data-tab="descTab">الوصف</button>
+              <button class="tab-btn" data-tab="featuresTab">المميزات</button>
+            </div>
+
+            <div class="tab-pane active" id="descTab">
+              <p style="font-size:.925rem;color:var(--text-2);line-height:1.95;max-width:700px">${product.description}</p>
+            </div>
+
+            <div class="tab-pane" id="featuresTab">
+              ${featTabHtml}
+            </div>
+          </div>
+        </div>`;
+
+      document.getElementById('footerMount').before(tabsSection);
+    }
+
+    /* Related products */
+    const related = PRODUCTS.filter(p => p.id !== id).slice(0, 3);
+    document.getElementById('relatedGrid').innerHTML = related.map(renderProductCard).join('');
+  </script>
+</body>
+</html>
